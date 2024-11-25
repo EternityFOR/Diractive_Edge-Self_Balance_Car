@@ -143,9 +143,7 @@ static void http_weather_task(void *pvParameters) {
                                 .action = 0,
                                 .weatherData = ""
                             };
-                            if (weather_time_Data.weatherData != NULL) {
-                                strcpy(weather_time_Data.weatherData, global_json_data);
-                            }
+                            strcpy(weather_time_Data.weatherData, global_json_data);
                             ESP_LOGI(TAG, "Global JSON data: %s", global_json_data);
                             if (xQueueSend(msg_queue, &weather_time_Data, portMAX_DELAY) != pdPASS) {
                                 ESP_LOGE(TAG, "Failed to send weather_time data to queue");

@@ -2,7 +2,7 @@
   "C_Cpp.intelliSenseEngine": "default",
   "idf.flashType": "UART",
   "idf.adapterTargetName": "esp32s3",
-  "idf.portWin": "COM6",
+  "idf.portWin": "COM16",
   "files.associations": {
     "system_error": "c",
     "array": "c",
@@ -16,14 +16,14 @@
     "interface/ftdi/esp32_devkitj_v1.cfg",
     "target/esp32s3.cfg"
   ],
-  "idf.espIdfPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3\\esp-idf",
-  "idf.pythonBinPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\python_env\\idf5.0_py3.11_env\\Scripts\\python.exe",
-  "idf.toolsPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL",
-  "idf.customExtraPaths": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\xtensa-esp-elf-gdb\\11.2_20220823\\xtensa-esp-elf-gdb\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\riscv32-esp-elf-gdb\\11.2_20220823\\riscv32-esp-elf-gdb\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\xtensa-esp32-elf\\esp-2022r1-11.2.0\\xtensa-esp32-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\xtensa-esp32s2-elf\\esp-2022r1-11.2.0\\xtensa-esp32s2-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\xtensa-esp32s3-elf\\esp-2022r1-11.2.0\\xtensa-esp32s3-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\riscv32-esp-elf\\esp-2022r1-11.2.0\\riscv32-esp-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\esp32ulp-elf\\2.35_20220830\\esp32ulp-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\cmake\\3.24.0\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\openocd-esp32\\v0.12.0-esp32-20230419\\openocd-esp32\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\ninja\\1.10.2;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\idf-exe\\1.0.3;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\ccache\\4.6.2\\ccache-4.6.2-windows-x86_64;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\dfu-util\\0.9\\dfu-util-0.9-win64;d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\esp-rom-elfs\\20220823",
+  "idf.espIdfPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1\\v5.3.1\\esp-idf",
+  "idf.pythonBinPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\python_env\\idf5.3_py3.11_env\\Scripts\\python.exe",
+  "idf.toolsPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL",
+  "idf.customExtraPaths": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\xtensa-esp-elf-gdb\\14.2_20240403\\xtensa-esp-elf-gdb\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\riscv32-esp-elf-gdb\\14.2_20240403\\riscv32-esp-elf-gdb\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\xtensa-esp-elf\\esp-13.2.0_20240530\\xtensa-esp-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\riscv32-esp-elf\\esp-13.2.0_20240530\\riscv32-esp-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\esp32ulp-elf\\2.38_20240113\\esp32ulp-elf\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\cmake\\3.24.0\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\openocd-esp32\\v0.12.0-esp32-20240318\\openocd-esp32\\bin;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\ninja\\1.11.1;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\idf-exe\\1.0.3;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\ccache\\4.8\\ccache-4.8-windows-x86_64;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\dfu-util\\0.11\\dfu-util-0.11-win64;d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\esp-rom-elfs\\20240305",
   "idf.customExtraVars": {
-    "OPENOCD_SCRIPTS": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\openocd-esp32\\v0.12.0-esp32-20230419/openocd-esp32/share/openocd/scripts",
+    "OPENOCD_SCRIPTS": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\openocd-esp32\\v0.12.0-esp32-20240318/openocd-esp32/share/openocd/scripts",
     "IDF_CCACHE_ENABLE": "1",
-    "ESP_ROM_ELF_DIR": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\esp-rom-elfs\\20220823/"
+    "ESP_ROM_ELF_DIR": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\esp-rom-elfs\\20240305/"
   },
-  "idf.gitPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.0.3_TOOL\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
+  "idf.gitPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
 }
