@@ -35,7 +35,7 @@ float targetSpeed;
 int carLifted = 0;
 unsigned flag = 1;
 float turn_error = 0.0, prev_turn_error = 0.0, turn_output = 0.0;
-float balanceshift = -1.5f;
+extern float Balance_Shift;
 
 void Velocity_PID_Control(MotorControl *motor_R, MotorControl *motor_L) {
     MotorControl* motors[] = {motor_R, motor_L};
@@ -76,7 +76,7 @@ void Balance_PID_Control(MotorControl *motor_R, MotorControl *motor_L) {
     MotorControl* motors[] = {motor_R, motor_L};
     for (int i = 0; i < 2; i++) {
         MotorControl *motor = motors[i];
-        balance_error = motor->currentAngle - motor->targetAngle - balanceshift;
+        balance_error = motor->currentAngle - motor->targetAngle - Balance_Shift;
         motor->balanceOutput = Balance_Kp * balance_error + Balance_Kd * (balance_error - prev_balance_error);
         motor->balanceOutput = fminf(fmaxf(motor->balanceOutput, -MAX_BALANCE_PWM), MAX_BALANCE_PWM);
         prev_balance_error = balance_error;

@@ -1,4 +1,4 @@
-//***Head_Files***
+//***Head_Files***//
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,14 +16,16 @@
 #include "wifi.h"
 #include "main.h"
 #include <driver/i2s_std.h>
-//***Parameters***
+#include "lwip/sockets.h"
+
+//***Parameters***//
 //Tags
 #define MAINTAG "main"
 #define I2STAG "I2S"
+#define TCPTAG "TCP"
 //UART pin assign
 #define TXD_PIN (GPIO_NUM_17)
 #define RXD_PIN (GPIO_NUM_18)
-
 /* I2S port and GPIOs */
 static bool stop_music_flag = true;
 static i2s_chan_handle_t tx_handle = NULL;
@@ -40,18 +42,21 @@ static i2s_chan_handle_t rx_handle = NULL;
 #define I2S_DI_IO  GPIO_NUM_NC
 extern const uint8_t music_pcm_start[] asm("_binary_car_2_raw_start");
 extern const uint8_t music_pcm_end[]   asm("_binary_car_2_raw_end");
-static TaskHandle_t i2s_music_task_handle = NULL;  // Task handle for the music playback
-static bool is_music_playing = false;  // Flag to track if music is playing
-
+static TaskHandle_t i2s_music_task_handle = NULL;
+static bool is_music_playing = false;
+//TCP UART DEBUG
+#define TCP_PORT 8080
+#define TCP_TAG "TCP_SERVER"
+static int tcp_client_socket = -1;
+static int tcp_server_socket = -1;
+static struct sockaddr_in server_addr, client_addr;
+static TaskHandle_t tcp_server_task_handle = NULL;
+#define LOG_BUFFER_SIZE 512
+static char log_buffer[LOG_BUFFER_SIZE];
 //Queue
 QueueHandle_t msg_queue = NULL;
 
-//Data type
-
-//***Functions***
-
-// Initializzation
-//uart init
+//***Functions***//
 void init_uart() {
     const uart_config_t uart_config = {
         .baud_rate = 115200,
@@ -63,17 +68,99 @@ void init_uart() {
     uart_param_config(UART_NUM_1, &uart_config);
     uart_set_pin(UART_NUM_1, TXD_PIN, RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE);
     uart_driver_install(UART_NUM_1, 4096*5, 0, 0, NULL, 0);
-}
 
-//queue init
-void queue_init(){
-    msg_queue = xQueueCreate(50, sizeof(msg_struct));
-    if (msg_queue == NULL) {
-        ESP_LOGE(MAINTAG, "Failed to create queue");
+    uart_driver_install(UART_NUM_0, 4096*5, 0, 0, NULL, 0);
+
+}
+int custom_log_vprintf(const char *fmt, va_list args) {
+    int len = vsnprintf(log_buffer, LOG_BUFFER_SIZE, fmt, args);
+    if (len > 0 && tcp_client_socket > 0) {
+        int sent = send(tcp_client_socket, log_buffer, len, 0);
+        if (sent < 0) {
+            ESP_LOGE("LOG_TCP", "Failed to send log via TCP: errno %d", errno);
+        }
     }
+    return vprintf(fmt, args); 
+}
+void setup_log_redirection() {
+    esp_log_set_vprintf(custom_log_vprintf);
+}
+void tcp_server_task(void *pvParameters) {
+    struct sockaddr_in server_addr, client_addr;
+    socklen_t client_addr_len = sizeof(client_addr);
+
+    // 创建服务器套接字
+    tcp_server_socket = socket(AF_INET, SOCK_STREAM, 0);
+    if (tcp_server_socket < 0) {
+        ESP_LOGE(TCPTAG, "Unable to create socket: errno %d", errno);
+        vTaskDelete(NULL);
+        return;
+    }
+
+    // 设置服务器地址
+    server_addr.sin_family = AF_INET;
+    server_addr.sin_addr.s_addr = htonl(INADDR_ANY);
+    server_addr.sin_port = htons(TCP_PORT);
+
+    // 绑定套接字
+    if (bind(tcp_server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) < 0) {
+        ESP_LOGE(TCPTAG, "Socket unable to bind: errno %d", errno);
+        close(tcp_server_socket);
+        vTaskDelete(NULL);
+        return;
+    }
+
+    // 开始监听
+    if (listen(tcp_server_socket, 1) < 0) {
+        ESP_LOGE(TCPTAG, "Error occurred during listen: errno %d", errno);
+        close(tcp_server_socket);
+        vTaskDelete(NULL);
+        return;
+    }
+    ESP_LOGI(TCPTAG, "Socket listening on port %d", TCP_PORT);
+
+    // 主循环
+    while (1) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ESP_LOGI(TCPTAG, "Waiting for a new client...");
+        tcp_client_socket = accept(tcp_server_socket, (struct sockaddr *)&client_addr, &client_addr_len);
+        if (tcp_client_socket < 0) {
+            ESP_LOGE(TCPTAG, "Unable to accept connection: errno %d", errno);
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            continue;
+        }
+        ESP_LOGI(TCPTAG, "Client connected");
+
+        // 客户端通信循环
+        while (1) {
+            vTaskDelay(1000 / portTICK_PERIOD_MS);
+            char recv_buf[64];  // 临时接收缓冲区
+            int len = recv(tcp_client_socket, recv_buf, sizeof(recv_buf) - 1, 0);
+            if (len <= 0) {
+                ESP_LOGE(TCPTAG, "Client disconnected or error: errno %d", errno);
+                close(tcp_client_socket);
+                tcp_client_socket = -1;  // 重置客户端套接字
+                break;
+            }
+
+            recv_buf[len] = '\0';  // 确保接收到的数据是字符串
+            ESP_LOGI(TCPTAG, "Received data: %s", recv_buf);
+
+            // 示例：将收到的数据原样返回
+            if (send(tcp_client_socket, recv_buf, len, 0) < 0) {
+                ESP_LOGE(TCPTAG, "Error occurred during sending: errno %d", errno);
+                close(tcp_client_socket);
+                tcp_client_socket = -1;  // 重置客户端套接字
+                break;
+            }
+        }
+    }
+
+    // 关闭服务器套接字
+    close(tcp_server_socket);
+    vTaskDelete(NULL);
 }
 
-//i2s music
 static esp_err_t i2s_driver_init(void) {
   i2s_chan_config_t chan_cfg =
       I2S_CHANNEL_DEFAULT_CONFIG(I2S_NUM, I2S_ROLE_MASTER);
@@ -102,8 +189,6 @@ static esp_err_t i2s_driver_init(void) {
   ESP_ERROR_CHECK(i2s_channel_init_std_mode(tx_handle, &std_cfg));
   return ESP_OK;
 }
-
-
 static void i2s_music(void *args)
 {
     esp_err_t ret = ESP_OK;
@@ -112,7 +197,6 @@ static void i2s_music(void *args)
     ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
     while (1) {
         if (stop_music_flag) {
-            // 停止播放逻辑
             // ESP_LOGI(I2STAG, "[music] Music playback stopped.");
             vTaskDelay(100 / portTICK_PERIOD_MS);
             continue;
@@ -146,7 +230,6 @@ static void i2s_music(void *args)
 
     vTaskDelete(NULL);
 }
-
 void start_music_playback() {
     if (!is_music_playing) {
         ESP_LOGI(MAINTAG, "Starting engine sound playback.");
@@ -156,7 +239,6 @@ void start_music_playback() {
         ESP_ERROR_CHECK(i2s_channel_enable(tx_handle));
     }
 }
-
 void stop_music_playback() {
     if (is_music_playing) {
         ESP_LOGI(MAINTAG, "Stopping engine sound playback.");
@@ -167,15 +249,19 @@ void stop_music_playback() {
     }
 }
 
-
-// Main function to handle data and trigger music playback
+void queue_init(){
+    msg_queue = xQueueCreate(20, sizeof(msg_struct));
+    if (msg_queue == NULL) {
+        ESP_LOGE(MAINTAG, "Failed to create queue");
+    }
+}
 void send_msg_to_stm32(void *pvParameters) {
     
     msg_struct msg_data;
+    
     while (1) {
+        char uart_data[8192];
         if (xQueueReceive(msg_queue, &msg_data, portMAX_DELAY)) {
-            char uart_data[2048];
-
             switch (msg_data.type) {
                 case DataType_Control:
                     snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"Control\",\"L\":%d,\"R\":%d,\"A\":%d}\n",
@@ -197,13 +283,14 @@ void send_msg_to_stm32(void *pvParameters) {
                     break;
 
                 case DataType_PID:
-                    snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"PID\",\"Balance_Kp\":%f,\"Balance_Ki\":%f,\"Balance_Kd\":%f,\"Velocity_Kp\":%f,\"Velocity_Ki\":%f,\"Velocity_Kd\":%f}\n",
+                    snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"PID\",\"Balance_Kp\":%f,\"Balance_Ki\":%f,\"Balance_Kd\":%f,\"Velocity_Kp\":%f,\"Velocity_Ki\":%f,\"Velocity_Kd\":%f,\"BalanceShift\":%f}\n",
                             msg_data.balancePID.Kp,
                             msg_data.balancePID.Ki,
                             msg_data.balancePID.Kd,
                             msg_data.velocityPID.Kp,
                             msg_data.velocityPID.Ki,
-                            msg_data.velocityPID.Kd);
+                            msg_data.velocityPID.Kd,
+                            msg_data.balanceshift);
                     break;
 
                 case DataType_Mode_Control:
@@ -218,12 +305,14 @@ void send_msg_to_stm32(void *pvParameters) {
             uart_write_bytes(UART_NUM_1, uart_data, strlen(uart_data));
             ESP_LOGI(MAINTAG, "Sent data to UART: %s", uart_data);
         }
+        vTaskDelay(100 / portTICK_PERIOD_MS);
     }
 }
 
 //Main function
 void app_main(void)
 {
+    BaseType_t result;
     // Initialize NVS
     esp_err_t ret;
     ret = nvs_flash_init();
@@ -232,26 +321,37 @@ void app_main(void)
         ret = nvs_flash_init();
     }
     ESP_ERROR_CHECK( ret );
+    setup_log_redirection();
 
     // Initialize WIFI
     initialise_wifi();
-
     // Start getting time and weather
     // weather_time_task_init();
-    
+
     //Queue init
     queue_init();
-    
     // Intialize UART
     init_uart();
 
-    //Initialize Blutooth
-    ble_init();
-
     //Task init
-    xTaskCreate(send_msg_to_stm32, "send_msg_to_stm32", 4096*20, NULL, 10, NULL);
-
+    if(xTaskCreate(send_msg_to_stm32, "send_msg_to_stm32", 8192, NULL, 10, NULL) != pdPASS)
+    {
+        ESP_LOGE(MAINTAG, "Failed to create send_msg_to_stm32 task");
+    }
     //I2S init
     i2s_driver_init();
-    xTaskCreate(i2s_music, "i2s_music", 4096 * 5, NULL, 5, &i2s_music_task_handle);
+    if(xTaskCreate(i2s_music, "i2s_music", 8192, NULL, 5, &i2s_music_task_handle) != pdPASS)
+    {
+        ESP_LOGE(MAINTAG, "Failed to create i2s_music task");
+    }
+    
+
+    //Initialize Blutooth
+    ble_init();
+    if(xTaskCreate(tcp_server_task, "tcp_server_task", 4096, NULL, 6, &tcp_server_task_handle) != pdPASS)
+    {
+        ESP_LOGE(MAINTAG, "Failed to create tcp_server_task task");
+    }
+    size_t free_heap = xPortGetFreeHeapSize();
+    printf("Free heap size: %d bytes\n", free_heap);
 }

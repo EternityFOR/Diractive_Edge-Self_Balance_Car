@@ -115,6 +115,7 @@ typedef struct {
     struct {
         float Balance_Kp, Balance_Ki, Balance_Kd; // Balance PID
         float Velocity_Kp, Velocity_Ki, Velocity_Kd; // Velocity PID
+        float Balance_Shift;
     } PID;
 
     struct {
@@ -127,12 +128,14 @@ typedef struct {
 MotorControl motor_R, motor_L;
 float Balance_Kp, Balance_Ki, Balance_Kd;
 float Velocity_Kp, Velocity_Ki, Velocity_Kd;
+float Balance_Shift;
 #define DEFAULT_BALANCE_KP 263.0f
 #define DEFAULT_BALANCE_KI 0.0f
 #define DEFAULT_BALANCE_KD 0.4f
 #define DEFAULT_VELOCITY_KP 0.6f
 #define DEFAULT_VELOCITY_KI 0.0025f
 #define DEFAULT_VELOCITY_KD 0.0f
+#define DEFAULT_DEFAULT_BAL_SHIFT -1.5f
 uint8_t ctr_cmd;
 /* USER CODE END PV */
 
@@ -246,7 +249,7 @@ int main(void)
   /* USER CODE BEGIN 2 */
   BSP_MPU6050_Init();
   Timer_Start();
-  ReadPIDParamsFromFlash(&Balance_Kp, &Balance_Ki, &Balance_Kd, &Velocity_Kp, &Velocity_Ki, &Velocity_Kd);
+  ReadPIDParamsFromFlash(&Balance_Kp, &Balance_Ki, &Balance_Kd, &Velocity_Kp, &Velocity_Ki, &Velocity_Kd, &Balance_Shift);
 
 // ***** CN2 CN4 *****
   initMotorControl(&motor_R, TIM_CHANNEL_1, TIM_CHANNEL_2, GetEncoder_Counter_R);
@@ -976,9 +979,9 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 //Uart Callback
 
-HAL_StatusTypeDef WritePIDParamsToFlash(float Balance_Kp, float Balance_Ki, float Balance_Kd, float Velocity_Kp, float Velocity_Ki, float Velocity_Kd) {
+HAL_StatusTypeDef WritePIDParamsToFlash(float Balance_Kp, float Balance_Ki, float Balance_Kd, float Velocity_Kp, float Velocity_Ki, float Velocity_Kd, float Balance_Shift) {
     HAL_StatusTypeDef status;
-    uint32_t data[6];
+    uint32_t data[7];
     uint32_t address = FLASH_PID_PARAMS_ADDRESS;
 
     memcpy(&data[0], &Balance_Kp, sizeof(float));
@@ -987,6 +990,7 @@ HAL_StatusTypeDef WritePIDParamsToFlash(float Balance_Kp, float Balance_Ki, floa
     memcpy(&data[3], &Velocity_Kp, sizeof(float));
     memcpy(&data[4], &Velocity_Ki, sizeof(float));
     memcpy(&data[5], &Velocity_Kd, sizeof(float));
+    memcpy(&data[6], &Balance_Shift, sizeof(float));
 
     //FLASH_Unlock
     HAL_FLASH_Unlock();
@@ -1016,13 +1020,14 @@ HAL_StatusTypeDef WritePIDParamsToFlash(float Balance_Kp, float Balance_Ki, floa
     return status;
 }
 
-void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance_Kd, float *Velocity_Kp, float *Velocity_Ki, float *Velocity_Kd) {
+void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance_Kd, float *Velocity_Kp, float *Velocity_Ki, float *Velocity_Kd, float *Balance_Shift) {
     memcpy(Balance_Kp, (float*)FLASH_PID_PARAMS_ADDRESS, sizeof(float));
     memcpy(Balance_Ki, (float*)(FLASH_PID_PARAMS_ADDRESS + 4), sizeof(float));
     memcpy(Balance_Kd, (float*)(FLASH_PID_PARAMS_ADDRESS + 8), sizeof(float));
     memcpy(Velocity_Kp, (float*)(FLASH_PID_PARAMS_ADDRESS + 12), sizeof(float));
     memcpy(Velocity_Ki, (float*)(FLASH_PID_PARAMS_ADDRESS + 16), sizeof(float));
     memcpy(Velocity_Kd, (float*)(FLASH_PID_PARAMS_ADDRESS + 20), sizeof(float));
+    memcpy(Balance_Shift, (float*)(FLASH_PID_PARAMS_ADDRESS + 24), sizeof(float));
 
     // Check for NaN values and set to default if necessary
     if (is_nan(*Balance_Kp)) *Balance_Kp = DEFAULT_BALANCE_KP;
@@ -1031,6 +1036,7 @@ void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance
     if (is_nan(*Velocity_Kp)) *Velocity_Kp = DEFAULT_VELOCITY_KP;
     if (is_nan(*Velocity_Ki)) *Velocity_Ki = DEFAULT_VELOCITY_KI;
     if (is_nan(*Velocity_Kd)) *Velocity_Kd = DEFAULT_VELOCITY_KD;
+    if (is_nan(*Balance_Shift)) *Balance_Shift = DEFAULT_DEFAULT_BAL_SHIFT;
 }
 
 void UART_IRQHandler_IDLE(UART_HandleTypeDef *huart)
@@ -1092,21 +1098,24 @@ void msg_rx(void *argument)
 						ctr.type = DataType_Weather;
 					}
 				} else if (strcmp(type, "PID") == 0) {
-					if (sscanf((char*)ctr.msg_Data, "{\"Type\":\"PID\",\"Balance_Kp\":%f,\"Balance_Ki\":%f,\"Balance_Kd\":%f,\"Velocity_Kp\":%f,\"Velocity_Ki\":%f,\"Velocity_Kd\":%f}",
+					if (sscanf((char*)ctr.msg_Data, "{\"Type\":\"PID\",\"Balance_Kp\":%f,\"Balance_Ki\":%f,\"Balance_Kd\":%f,"
+							"\"Velocity_Kp\":%f,\"Velocity_Ki\":%f,\"Velocity_Kd\":%f,\"Balance_Shift\":%f}",
 							   &ctr.PID.Balance_Kp,
 							   &ctr.PID.Balance_Ki,
 							   &ctr.PID.Balance_Kd,
 							   &ctr.PID.Velocity_Kp,
 							   &ctr.PID.Velocity_Ki,
-							   &ctr.PID.Velocity_Kd) == 6) {
+							   &ctr.PID.Velocity_Kd,
+							   &ctr.PID.Balance_Shift) == 7) {
 						Balance_Kp = ctr.PID.Balance_Kp;
 						Balance_Ki = ctr.PID.Balance_Ki;
 						Balance_Kd = ctr.PID.Balance_Kd;
 						Velocity_Kp = ctr.PID.Velocity_Kp;
 						Velocity_Ki = ctr.PID.Velocity_Ki;
 						Velocity_Kd = ctr.PID.Velocity_Kd;
+						Balance_Shift = ctr.PID.Balance_Shift;
 						ctr.type = DataType_PID;
-						if (WritePIDParamsToFlash(Balance_Kp, Balance_Ki, Balance_Kd, Velocity_Kp, Velocity_Ki, Velocity_Kd) != HAL_OK) {
+						if (WritePIDParamsToFlash(Balance_Kp, Balance_Ki, Balance_Kd, Velocity_Kp, Velocity_Ki, Velocity_Kd, Balance_Shift) != HAL_OK) {
 							printf("PID_store_to_flash_failed\n");
 						}
 					}

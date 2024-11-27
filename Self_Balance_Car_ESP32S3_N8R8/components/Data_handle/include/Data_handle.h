@@ -27,6 +27,7 @@ typedef struct {
     char weatherData[256];
     PIDParams balancePID;
     PIDParams velocityPID;
+    float balanceshift;
 } msg_struct;
 
 void handle_car_control_signal(char *car_control_data_str);

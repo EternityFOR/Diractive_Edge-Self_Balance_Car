@@ -17,6 +17,7 @@ TimerHandle_t switch_back_to_original_ble_timer = NULL;
 void handle_pid_data(cJSON *root) {
     cJSON *balancePID = cJSON_GetObjectItemCaseSensitive(root, "balancePID");
     cJSON *velocityPID = cJSON_GetObjectItemCaseSensitive(root, "velocityPID");
+    cJSON *balanceshift = cJSON_GetObjectItemCaseSensitive(root, "balanceshift");
 
     if (!balancePID || !velocityPID) {
         ESP_LOGE(GATTS_DATA_TAG, "PID JSON does not contain required fields");
@@ -33,6 +34,12 @@ void handle_pid_data(cJSON *root) {
     pid_data.velocityPID.Kp = cJSON_GetObjectItemCaseSensitive(velocityPID, "Kp")->valuedouble;
     pid_data.velocityPID.Ki = cJSON_GetObjectItemCaseSensitive(velocityPID, "Ki")->valuedouble;
     pid_data.velocityPID.Kd = cJSON_GetObjectItemCaseSensitive(velocityPID, "Kd")->valuedouble;
+        // Add check for balanceshift
+    if (balanceshift != NULL) {
+        pid_data.balanceshift = balanceshift->valuedouble;
+    } else {
+        pid_data.balanceshift = 0.0;  // Set a default value if balanceshift is not present
+    }
 
     if (xQueueSend(msg_queue, &pid_data, portMAX_DELAY) != pdPASS) {
         ESP_LOGE(GATTS_DATA_TAG, "Failed to send PID data to queue");
