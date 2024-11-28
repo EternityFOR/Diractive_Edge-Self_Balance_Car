@@ -60,7 +60,11 @@ void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart);
 void msg_rx(void *argument);
 void Motor_update(void *argument);
 void openRadarEngineeringModeUSART2(void);
-void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance_Kd, float *Velocity_Kp, float *Velocity_Ki, float *Velocity_Kd);
+<<<<<<< HEAD
+void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance_Kd, float *Velocity_Kp, float *Velocity_Ki, float *Velocity_Kd, float *BalanceShift);
+=======
+void ReadPIDParamsFromFlash(float *Balance_Kp, float *Balance_Ki, float *Balance_Kd, float *Velocity_Kp, float *Velocity_Ki, float *Velocity_Kd, float *Balance_Shift);
+>>>>>>> 767b406b14e05d6fadf094114ea391546080ae84
 /* USER CODE END EFP */
 
 /* Private defines -----------------------------------------------------------*/
