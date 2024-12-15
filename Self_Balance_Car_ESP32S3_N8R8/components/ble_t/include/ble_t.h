@@ -39,6 +39,6 @@ enum{
     SPP_IDX_NB,
 };
 
-void ble_init(void);
+void ble_init_main(void);
 
 #endif

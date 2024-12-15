@@ -1,21 +1,5 @@
 {
   "C_Cpp.intelliSenseEngine": "default",
-  "idf.flashType": "UART",
-  "idf.adapterTargetName": "esp32s3",
-  "idf.portWin": "COM16",
-  "files.associations": {
-    "system_error": "c",
-    "array": "c",
-    "functional": "c",
-    "tuple": "c",
-    "type_traits": "c",
-    "utility": "c",
-    "esp_gap_ble_api.h": "c"
-  },
-  "idf.openOcdConfigs": [
-    "interface/ftdi/esp32_devkitj_v1.cfg",
-    "target/esp32s3.cfg"
-  ],
   "idf.espIdfPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1\\v5.3.1\\esp-idf",
   "idf.pythonBinPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\python_env\\idf5.3_py3.11_env\\Scripts\\python.exe",
   "idf.toolsPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL",
@@ -25,5 +9,8 @@
     "IDF_CCACHE_ENABLE": "1",
     "ESP_ROM_ELF_DIR": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\esp-rom-elfs\\20240305/"
   },
-  "idf.gitPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\idf-git\\2.39.2\\cmd\\git.exe"
+  "idf.gitPathWin": "d:\\1.Software\\ESPRESSIF\\ESPIDF5.3.1_TOOL\\tools\\idf-git\\2.39.2\\cmd\\git.exe",
+  "idf.adapterTargetName": "esp32s3",
+  "idf.flashType": "UART",
+  "idf.portWin": "COM16"
 }

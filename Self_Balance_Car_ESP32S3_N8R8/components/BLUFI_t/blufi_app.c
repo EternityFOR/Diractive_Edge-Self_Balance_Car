@@ -28,7 +28,7 @@ extern void switch_back_to_original_ble_callback(TimerHandle_t);
 extern TimerHandle_t switch_back_to_original_ble_timer;
 #define WIFI_LIST_NUM   10
 
-static wifi_config_t sta_config;
+wifi_config_t sta_config;
 static wifi_config_t ap_config;
 
 /* FreeRTOS event group to signal when we are connected & ready to make a request */
