@@ -44,10 +44,10 @@
  * @brief I2S GPIO for microphone
  */
 #define I2S_MIC_NUM             (I2S_NUM_1)
-#define GPIO_I2S_SDIN           (GPIO_NUM_16)
+#define GPIO_I2S_SDIN_MIC       (GPIO_NUM_16)
 #define GPIO_I2S_SCLK_MIC       (GPIO_NUM_15)
 #define GPIO_I2S_LRCK_MIC       (GPIO_NUM_7)
-#define I2S_MIC_MCLK_MULTIPLE   384
+#define I2S_MIC_MCLK_MULTIPLE   510
 
 /**
  * @brief 
@@ -62,17 +62,16 @@
  */
 #define I2S_CONFIG_DEFAULT(sample_rate, channel_fmt, bits_per_chan) { \
     .clk_cfg  = I2S_STD_CLK_DEFAULT_CONFIG(sample_rate), \
-    .clk_cfg.mclk_multiple = I2S_MIC_MCLK_MULTIPLE,\
-    .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(bits_per_chan, I2S_SLOT_MODE_STEREO), \
+    .slot_cfg = I2S_STD_PHILIPS_SLOT_DEFAULT_CONFIG(bits_per_chan, channel_fmt), \
     .gpio_cfg = { \
         .bclk = GPIO_I2S_SCLK_MIC, \
-        .ws   = GPIO_I2S_LRCK, \
-        .dout = GPIO_I2S_DOUT, \
-        .din  = GPIO_I2S_SDIN, \
+        .ws   = GPIO_I2S_LRCK_MIC, \
+        .din  = GPIO_I2S_SDIN_MIC, \
+        .dout  = GPIO_NUM_NC, \
         .invert_flags = { \
-            .mclk_inv = false,\
-            .bclk_inv = false,\
-            .ws_inv = false,\
-        },\
+            .mclk_inv = false, \
+            .bclk_inv = false, \
+            .ws_inv   = false, \
+        }, \
     }, \
 }

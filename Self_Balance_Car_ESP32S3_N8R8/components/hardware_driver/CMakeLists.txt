@@ -37,12 +37,13 @@ idf_component_register(
         ${BSP_BOARD_SRC}
     INCLUDE_DIRS
         "include"
+        "codec/include"
         "boards/include"
     REQUIRES
         driver
         fatfs
         spiffs
-        )
+        esp_codec_dev)
 
 component_compile_options(-w)
 target_compile_options(${COMPONENT_LIB} PRIVATE "-Wno-format")

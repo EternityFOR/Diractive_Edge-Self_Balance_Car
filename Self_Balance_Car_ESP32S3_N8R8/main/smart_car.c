@@ -642,6 +642,25 @@ static void i2s_mic_task(void *pvParameters) {
     }
 }
 
+void play_music(void *arg)
+{
+    while (task_flag) {
+        switch (play_voice) {
+        case -2:
+            vTaskDelay(10);
+            break;
+        case -1:
+            wake_up_action();
+            play_voice = -2;
+            break;
+        default:
+            speech_commands_action(play_voice);
+            play_voice = -2;
+            break;
+        }
+    }
+    vTaskDelete(NULL);
+}
 void feed_Task(void *arg)
 {
     esp_afe_sr_data_t *afe_data = arg;
@@ -688,7 +707,7 @@ void detect_Task(void *arg)
 
         if (res->wakeup_state == WAKENET_DETECTED) {
             printf("WAKEWORD DETECTED\n");
-	    multinet->clean(model_data);
+	        multinet->clean(model_data);
         } else if (res->wakeup_state == WAKENET_CHANNEL_VERIFIED) {
             play_voice = -1;
             detect_flag = 1;
@@ -696,7 +715,6 @@ void detect_Task(void *arg)
             // afe_handle->disable_wakenet(afe_data);
             // afe_handle->disable_aec(afe_data);
         }
-
         if (detect_flag == 1) {
             esp_mn_state_t mn_state = multinet->detect(model_data, res->data);
 
@@ -731,17 +749,20 @@ void detect_Task(void *arg)
     vTaskDelete(NULL);
 }
 void initialize_voice_recognition() {
-    task_flag = 1;
     models = esp_srmodel_init("model");
-    ESP_ERROR_CHECK(esp_board_init(16000, 2, 24));
+    ESP_ERROR_CHECK(esp_board_init(16000, 1, 32));
     afe_handle = (esp_afe_sr_iface_t *)&ESP_AFE_SR_HANDLE;
     afe_config_t afe_config = AFE_CONFIG_DEFAULT();
     afe_config.wakenet_model_name = esp_srmodel_filter(models, ESP_WN_PREFIX, NULL);
+    afe_config.aec_init = false;
+    afe_config.pcm_config.total_ch_num = 2;
+    afe_config.pcm_config.mic_num = 1;
+    afe_config.pcm_config.ref_num = 1;
     esp_afe_sr_data_t *afe_data = afe_handle->create_from_config(&afe_config);
-
+    task_flag = 1;
 
     if(xTaskCreatePinnedToCore(&detect_Task, "detect", 15 * 1024, (void*)afe_data, 12, NULL, 1) != pdPASS){
-        ESP_LOGE(TAGMAIN, "Failed to create detect_Task task");
+            ESP_LOGE(TAGMAIN, "Failed to create detect_Task task");
     }
     else{
         ESP_LOGI(TAGMAIN, "Created detect_Task task");
