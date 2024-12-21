@@ -157,6 +157,14 @@ static char log_buffer[LOG_BUFFER_SIZE];
 static int tcp_client_socket = -1;
 static int tcp_server_socket = -1;
 
+//Voice Command
+typedef enum{
+    GO = 40,
+    STOP,
+    RIGHT,
+    LEFT,
+    BACK,
+};
 
 //***Functions***//
 /*NVS*/
@@ -705,17 +713,17 @@ void detect_Task(void *arg)
             break;
         }
 
-        if (res->wakeup_state == WAKENET_DETECTED) {
-            printf("WAKEWORD DETECTED\n");
-	        multinet->clean(model_data);
-        } else if (res->wakeup_state == WAKENET_CHANNEL_VERIFIED) {
-            play_voice = -1;
-            detect_flag = 1;
-            printf("AFE_FETCH_CHANNEL_VERIFIED, channel index: %d\n", res->trigger_channel_id);
-            // afe_handle->disable_wakenet(afe_data);
-            // afe_handle->disable_aec(afe_data);
-        }
-        if (detect_flag == 1) {
+        // if (res->wakeup_state == WAKENET_DETECTED) {
+        //     printf("WAKEWORD DETECTED\n");
+        //     multinet->clean(model_data);
+        // } else if (res->wakeup_state == WAKENET_CHANNEL_VERIFIED) {
+        //     play_voice = -1;
+        //     detect_flag = 1;
+        //     printf("AFE_FETCH_CHANNEL_VERIFIED, channel index: %d\n", res->trigger_channel_id);
+        //     // afe_handle->disable_wakenet(afe_data);
+        //     // afe_handle->disable_aec(afe_data);
+        // }
+        if (1) {
             esp_mn_state_t mn_state = multinet->detect(model_data, res->data);
 
             if (mn_state == ESP_MN_STATE_DETECTING) {
@@ -726,8 +734,58 @@ void detect_Task(void *arg)
                 esp_mn_results_t *mn_result = multinet->get_results(model_data);
                 for (int i = 0; i < mn_result->num; i++) {
                     printf("TOP %d, command_id: %d, phrase_id: %d, string: %s, prob: %f\n", 
-                    i+1, mn_result->command_id[i], mn_result->phrase_id[i], mn_result->string, mn_result->prob[i]);
+                           i+1, mn_result->command_id[i], mn_result->phrase_id[i], mn_result->string, mn_result->prob[i]);
                 }
+
+                msg_struct msg_data = {0};
+                msg_data.type = DataType_Control;
+
+                switch (mn_result->command_id[0]) {
+                    case GO:
+                        printf("Command: GO\n");
+                        msg_data.leftWheelSpeed = 100;
+                        msg_data.rightWheelSpeed = 100;
+                        msg_data.action = 0;
+                        xQueueSend(msg_queue, &msg_data, portMAX_DELAY);
+                        break;
+
+                    case STOP:
+                        printf("Command: STOP\n");
+                        msg_data.leftWheelSpeed = 0;
+                        msg_data.rightWheelSpeed = 0;
+                        msg_data.action = 0;
+                        xQueueSend(msg_queue, &msg_data, portMAX_DELAY);
+                        break;
+
+                    case RIGHT:
+                        printf("Command: TURN RIGHT\n");
+                        msg_data.leftWheelSpeed = 100;
+                        msg_data.rightWheelSpeed = -100;
+                        msg_data.action = 0;
+                        xQueueSend(msg_queue, &msg_data, portMAX_DELAY);
+                        break;
+
+                    case LEFT:
+                        printf("Command: TURN LEFT\n");
+                        msg_data.leftWheelSpeed = -100;
+                        msg_data.rightWheelSpeed = 100;
+                        msg_data.action = 0;
+                        xQueueSend(msg_queue, &msg_data, portMAX_DELAY);
+                        break;
+
+                    case BACK:
+                        printf("Command: BACK\n");
+                        msg_data.leftWheelSpeed = -100;
+                        msg_data.rightWheelSpeed = -100;
+                        msg_data.action = 0;
+                        xQueueSend(msg_queue, &msg_data, portMAX_DELAY);
+                        break;
+
+                    default:
+                        printf("Unknown command\n");
+                        break;
+                }
+
                 printf("-----------listening-----------\n");
             }
 
@@ -741,6 +799,7 @@ void detect_Task(void *arg)
             }
         }
     }
+
     if (model_data) {
         multinet->destroy(model_data);
         model_data = NULL;
@@ -748,6 +807,7 @@ void detect_Task(void *arg)
     printf("detect exit\n");
     vTaskDelete(NULL);
 }
+
 void initialize_voice_recognition() {
     models = esp_srmodel_init("model");
     ESP_ERROR_CHECK(esp_board_init(16000, 1, 32));
@@ -761,7 +821,7 @@ void initialize_voice_recognition() {
     esp_afe_sr_data_t *afe_data = afe_handle->create_from_config(&afe_config);
     task_flag = 1;
 
-    if(xTaskCreatePinnedToCore(&detect_Task, "detect", 15 * 1024, (void*)afe_data, 12, NULL, 1) != pdPASS){
+    if(xTaskCreatePinnedToCore(&detect_Task, "detect", 30 * 1024, (void*)afe_data, 12, NULL, 1) != pdPASS){
             ESP_LOGE(TAGMAIN, "Failed to create detect_Task task");
     }
     else{
@@ -784,23 +844,23 @@ void queue_init_main(){
 void send_msg_to_stm32(void *pvParameters) {
     
     msg_struct msg_data;
-    char uart_data[8192];
+    char uart_data[2048];
     while (1) {
         if (xQueueReceive(msg_queue, &msg_data, portMAX_DELAY)) {
             switch (msg_data.type) {
                 case DataType_Control:
-            snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"Control\",\"L\":%d,\"R\":%d,\"A\":%d}\n",
-                             msg_data.leftWheelSpeed,
-                             msg_data.rightWheelSpeed,
-                             msg_data.action);
+                    snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"Control\",\"L\":%d,\"R\":%d,\"A\":%d}\n",
+                                    msg_data.leftWheelSpeed,
+                                    msg_data.rightWheelSpeed,
+                                    msg_data.action);
 
-                    // Check wheel speeds to control engine sound playback
-                    // if ((msg_data.leftWheelSpeed != 0) || (msg_data.rightWheelSpeed != 0)) {
-                    //     start_music_playback();  // Start music playback if any wheel is moving
-                    // } else {
-                    //     stop_music_playback();  // Stop music playback if both wheels stop
-                    // }
-                    break;
+                            // Check wheel speeds to control engine sound playback
+                            // if ((msg_data.leftWheelSpeed != 0) || (msg_data.rightWheelSpeed != 0)) {
+                            //     start_music_playback();  // Start music playback if any wheel is moving
+                            // } else {
+                            //     stop_music_playback();  // Stop music playback if both wheels stop
+                            // }
+                            break;
 
                 case DataType_Weather:
                     snprintf(uart_data, sizeof(uart_data), "{\"Type\":\"Weather\",\"Data\":\"%s\"}\n",
